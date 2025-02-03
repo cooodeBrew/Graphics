@@ -1,0 +1,3 @@
+/Users/qing/Downloads/Graphics_a1/ray/build/CMakeFiles/ray.dir
+/Users/qing/Downloads/Graphics_a1/ray/build/CMakeFiles/edit_cache.dir
+/Users/qing/Downloads/Graphics_a1/ray/build/CMakeFiles/rebuild_cache.dir
