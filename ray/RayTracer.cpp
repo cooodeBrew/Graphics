@@ -79,7 +79,8 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
 #if VERBOSE
   std::cerr << "== current depth: " << depth << std::endl;
 #endif
-
+  glm::dvec3 position = r.getPosition();
+  glm::dvec3 direction = r.getDirection();
   if (scene->intersect(r, i)) {
     // YOUR CODE HERE
 
@@ -93,6 +94,44 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
 
     const Material &m = i.getMaterial();
     colorC = m.shade(scene.get(), r, i);
+    if (depth <= 0) {
+      return colorC;
+    }
+    glm::dvec3 normal = i.getN();
+    glm::dvec3 point = r.at(i.getT());
+    glm::dvec3 reflection_dir = glm::reflect(direction, normal);
+    // Reflection
+    if (m.kr(i) != glm::dvec3(0, 0, 0)) {
+      ray reflectedRay = ray(normal * RAY_EPSILON + point, reflection_dir, thresh, ray::REFLECTION);
+      colorC += m.kr(i) * traceRay(reflectedRay, thresh, depth - 1, t);
+    }
+    // Refraction
+    if (m.kt(i) != glm::dvec3(0, 0, 0)) {
+      double n_i = 0.0;
+      double n_t = 0.0;
+      glm::dvec3 refract_normal = normal;
+      if (glm::dot(direction, normal) > 0 && r.type() == ray::REFRACTION) {
+        // Exiting the object
+        n_i = m.index(i);
+        n_t = 1.0;
+      } else {
+        // Entering the object 
+        n_i = 1.0;
+        n_t = m.index(i);
+        refract_normal = -normal;
+      }
+      glm::dvec3 refraction_dir = glm::refract(-direction, refract_normal, n_i/n_t);
+      if (refraction_dir == glm::dvec3(0, 0, 0)) {
+        // Refraction failed, reflects instead
+        glm::dvec3 reflect_dir = glm::reflect(direction, refract_normal);
+        ray reflectRay = ray(point, reflection_dir, thresh, ray::REFLECTION);
+        colorC += m.kt(i) * traceRay(reflectRay, thresh, depth - 1, t);
+      } else {
+        // Refraction is possible
+        ray refractRay = ray(point, -refraction_dir, thresh, ray::REFRACTION);
+        colorC += m.kt(i) * traceRay(refractRay, thresh, depth - 1, t);
+      }
+    }
   } else {
     // No intersection. This ray travels to infinity, so we color
     // it according to the background color, which in this (simple)
@@ -235,7 +274,13 @@ void RayTracer::traceSetup(int w, int h) {
 void RayTracer::traceImage(int w, int h) {
   // Always call traceSetup before rendering anything.
   traceSetup(w, h);
-
+  #pragma omp parallel for
+  for (int i = 0; i < w; i++) {
+    #pragma omp parallel for
+    for (int j = 0; j < h; j++) {
+      tracePixel(i, j);
+    }
+  }
   // YOUR CODE HERE
   // FIXME: Start one or more threads for ray tracing
   //

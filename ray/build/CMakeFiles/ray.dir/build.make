@@ -614,6 +614,9 @@ ray: /opt/homebrew/lib/libfltk.dylib
 ray: /opt/homebrew/lib/libpng.dylib
 ray: /Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk/usr/lib/libz.tbd
 ray: /Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk/usr/lib/libz.tbd
+ray: /opt/homebrew/lib/libfltk_images.dylib
+ray: /opt/homebrew/lib/libfltk_forms.dylib
+ray: /opt/homebrew/lib/libfltk_gl.dylib
 ray: /opt/homebrew/lib/libfltk.dylib
 ray: /opt/homebrew/lib/libpng.dylib
 ray: CMakeFiles/ray.dir/link.txt

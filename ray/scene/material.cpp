@@ -6,6 +6,8 @@ extern TraceUI *traceUI;
 
 #include "../fileio/images.h"
 #include <glm/gtx/io.hpp>
+#include <cmath>      // for pow()
+#include <algorithm>  // for std::max
 #include <iostream>
 
 using namespace std;
@@ -42,7 +44,25 @@ glm::dvec3 Material::shade(Scene *scene, const ray &r, const isect &i) const {
   // 		.
   // 		.
   // }
-  return kd(i);
+
+  // Extract surface normal at the intersection point
+  glm::dvec3 normal = i.getN();
+  // Compute the point where ray intersects object
+  glm::dvec3 point = r.at(i.getT());
+  // Initialize phong color
+  glm::dvec3 phong = ke(i) + ka(i) * scene->ambient();
+  double shininess = Material::shininess(i);
+  // Loop over all lights in the scene
+  for (const auto& pLight : scene->getAllLights()) {
+    ray shadow = ray(normal * RAY_EPSILON + point, pLight->getDirection(point), glm::dvec3(1, 1, 1), ray::SHADOW);
+    glm::dvec3 attenuation = pLight->distanceAttenuation(point) * pLight->shadowAttenuation(shadow, point);
+    glm::dvec3 dir_lightScource = pLight->getDirection(point);
+    glm::dvec3 dir_reflection = glm::reflect(dir_lightScource, normal);
+    glm::dvec3 diffuse = kd(i) * glm::max(glm::dot(dir_lightScource, normal), 0.0);
+    glm::dvec3 specular = ks(i) * glm::pow(glm::max(glm::dot(dir_reflection, r.getDirection()), 0.0), shininess);
+    phong += attenuation * (diffuse + specular) * pLight->getColor();
+  }
+  return phong;
 }
 
 TextureMap::TextureMap(string filename) {
