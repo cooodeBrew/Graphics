@@ -1,8 +1,5 @@
 // The main ray tracer.
 
-
-// TEST for mirroring!!!
-
 #pragma warning(disable : 4786)
 
 #include "RayTracer.h"
@@ -145,7 +142,9 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
     // traceUI->getCubeMap();
     //       Check traceUI->cubeMap() to see if cubeMap is loaded
     //       and enabled.
-
+    if (traceUI->cubeMap()) {
+      return traceUI->getCubeMap()->getColor(r);
+    }
     colorC = glm::dvec3(0.0, 0.0, 0.0);
   }
 #if VERBOSE
@@ -276,22 +275,36 @@ void RayTracer::traceSetup(int w, int h) {
  */
 void RayTracer::traceImage(int w, int h) {
   // Always call traceSetup before rendering anything.
-  traceSetup(w, h);
-  #pragma omp parallel for
-  for (int i = 0; i < w; i++) {
-    #pragma omp parallel for
-    for (int j = 0; j < h; j++) {
-      tracePixel(i, j);
-    }
-  }
+
+  // traceSetup(w, h);
+  // #pragma omp parallel for
+  // for (int i = 0; i < w; i++) {
+  //   #pragma omp parallel for
+  //   for (int j = 0; j < h; j++) {
+  //     tracePixel(i, j);
+  //   }
+  // }
+
   // YOUR CODE HERE
   // FIXME: Start one or more threads for ray tracing
   //
-  // TIPS: Ideally, the traceImage should be executed asynchronously,
+  // TIPS: Ideally, the traceIm  //       while rendering.age should be executed asynchronously,
   //       i.e. returns IMMEDIATELY after working threads are launched.
   //
   //       An asynchronous traceImage lets the GUI update your results
   //       while rendering.
+  std::thread renderThread([this, w, h]() {
+    traceSetup(w, h);
+
+    // #pragma omp parallel for
+    for (int i = 0; i < w; i++) {
+      #pragma omp parallel for
+      for (int j = 0; j < h; j++) {
+        tracePixel(i, j);
+      }
+    }
+    
+    renderThread.detach();
 }
 
 int RayTracer::aaImage() {
