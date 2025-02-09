@@ -1,5 +1,8 @@
 // The main ray tracer.
 
+
+// TEST for mirroring!!!
+
 #pragma warning(disable : 4786)
 
 #include "RayTracer.h"
