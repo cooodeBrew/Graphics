@@ -276,14 +276,14 @@ void RayTracer::traceSetup(int w, int h) {
 void RayTracer::traceImage(int w, int h) {
   // Always call traceSetup before rendering anything.
 
-  // traceSetup(w, h);
-  // #pragma omp parallel for
-  // for (int i = 0; i < w; i++) {
-  //   #pragma omp parallel for
-  //   for (int j = 0; j < h; j++) {
-  //     tracePixel(i, j);
-  //   }
-  // }
+  traceSetup(w, h);
+  #pragma omp parallel for
+  for (int i = 0; i < w; i++) {
+    #pragma omp parallel for
+    for (int j = 0; j < h; j++) {
+      tracePixel(i, j);
+    }
+  }
 
   // YOUR CODE HERE
   // FIXME: Start one or more threads for ray tracing
@@ -293,18 +293,6 @@ void RayTracer::traceImage(int w, int h) {
   //
   //       An asynchronous traceImage lets the GUI update your results
   //       while rendering.
-  std::thread renderThread([this, w, h]() {
-    traceSetup(w, h);
-
-    // #pragma omp parallel for
-    for (int i = 0; i < w; i++) {
-      #pragma omp parallel for
-      for (int j = 0; j < h; j++) {
-        tracePixel(i, j);
-      }
-    }
-    
-    renderThread.detach();
 }
 
 int RayTracer::aaImage() {

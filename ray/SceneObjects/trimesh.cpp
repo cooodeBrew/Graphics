@@ -96,8 +96,102 @@ bool TrimeshFace::intersectLocal(ray &r, isect &i) const {
      - If neither is true, assign the parent's material to the intersection.
   */
 
-  i.setObject(this->parent);
-  return false;
+  // get the 3D coordinates for the three vertices of the triangle
+  glm::dvec3 x_coord = parent->vertices[ids[0]];
+  glm::dvec3 y_coord = parent->vertices[ids[1]];
+  glm::dvec3 z_coord = parent->vertices[ids[2]];
+
+  // dot product between normal and rat's direction
+  double dotP = glm::dot(normal, r.getDirection());
+
+  // if dot product is positive, the ray is hitting the back face relative to normal
+  if (dotP > RAY_EPSILON) {
+    return false;
+  }
+
+  // get the parameter along the ray where the intersection
+  // with the plane containing the triangle occurs.
+  double hitParam = glm::dot(normal, x_coord - r.getPosition()) / dotP;
+
+  if (hitParam < RAY_EPSILON) {
+    // the intersection point is behind the ray's origin or too close
+    return false;
+  }
+
+  i.setT(hitParam);
+
+  // get the intersection point on the ray using hit parameter
+  glm::dvec3 P = r.at(hitParam);
+
+  // get vectors between vertices of the triangle
+  glm::dvec3 vec_yx = (x_coord - y_coord); // y to x
+  glm::dvec3 vec_zx = (x_coord - z_coord); // z to x
+  glm::dvec3 vec_zy = (y_coord - z_coord); // z to y
+
+  // vertices to intersection point
+  glm::dvec3 vec_x_point = P - x_coord;
+  glm::dvec3 vec_y_point = P - y_coord;
+  glm::dvec3 vec_z_point = P - z_coord;
+
+  // area of triangle using cross product
+  double tri_area = glm::length(glm::cross(vec_zx, vec_zy)) * 0.5;
+
+  // sub-areas for the subtriangles formed by the intersection point
+  double yz_area = glm::length(glm::cross(vec_zy, vec_y_point)) * 0.5;
+  double xz_area = glm::length(glm::cross(vec_zx, vec_z_point)) * 0.5;
+  double xy_area = glm::length(glm::cross(vec_yx, vec_x_point)) * 0.5;
+
+  // if total area is nearly 0, then the triangle is degenerate
+  if (tri_area < RAY_EPSILON) {
+    return false;
+  }
+
+  // get barycentric coordinates
+  double alpha = yz_area / tri_area;
+  double beta = xz_area / tri_area;
+  double gamma = xy_area / tri_area;
+
+  // check if all of them are non-negative and sum to 1
+  if (alpha >= 0 && beta >= 0 && gamma >= 0 && std::fabs(1.0 - alpha - beta - gamma) < RAY_EPSILON) {
+    i.setBary(alpha, beta, gamma);
+
+    if (!parent->normals.empty()) {
+      glm::dvec3 x_norm = parent->normals[ids[0]];
+      glm::dvec3 y_norm = parent->normals[ids[1]];
+      glm::dvec3 z_norm = parent->normals[ids[2]];
+
+      glm::dvec3 N = x_norm * alpha + y_norm * beta + z_norm * gamma;
+      i.setN(glm::normalize(N));
+    } else {
+      i.setN(glm::normalize(normal));
+    }
+
+    // assign texture coordinates or vertec colors to the intersection
+    if (!parent->uvCoords.empty()) {
+      glm::dvec2 uv = parent->uvCoords[ids[0]] * alpha + parent->uvCoords[ids[1]] * beta + parent->uvCoords[ids[2]] * gamma;
+      i.setUVCoordinates(uv);
+    } else if (!parent->vertColors.empty()) {
+      glm::dvec3 color1 = parent->vertColors[ids[0]];
+      glm::dvec3 color2 = parent->vertColors[ids[1]];
+      glm::dvec3 color3 = parent->vertColors[ids[2]];
+
+      glm::dvec3 color = color1 * alpha + color2 * beta + color3 * gamma;
+
+      Material material = parent->getMaterial();
+
+      material.setDiffuse(color);
+
+      i.setMaterial(material);
+    } else {
+      // neither uv coordinates nor vertex colors are available
+      i.setMaterial(parent->getMaterial());
+    }
+
+    i.setObject(this->parent);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 // Once all the verts and faces are loaded, per vertex normals can be
