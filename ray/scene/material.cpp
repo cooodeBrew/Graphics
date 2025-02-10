@@ -87,8 +87,26 @@ glm::dvec3 TextureMap::getMappedValue(const glm::dvec2 &coord) const {
   // [0, 1] x [0, 1] in 2-space to bitmap coordinates,
   // and use these to perform bilinear interpolation
   // of the values.
+  double x = coord.x * (double) getWidth();
+  double y = coord.y * (double) getHeight();
+  double x1 = std::floor(x);
+  double x2 = x1 + 1.0;
+  doubel y1 = std::floor(y);
+  double y2 = y1 + 1.0;
 
-  return glm::dvec3(1, 1, 1);
+  // top left corner
+  glm::dvec3 q11 = getPixelAt((int) x1, (int) y1);
+  // bottom left
+  glm::dvec3 q12 = getPixelAt((int) x1, (int) y2);
+  // top right
+  glm::dvec3 q21 = getPixelAt((int) x2, (int) y1);
+  // bottom right
+  glm::dvec3 q22 = getPixelAt((int) x2, (int) y2);
+
+  glm::dvec3 r1 = ((x2 - x)/(x2 - x1)) * q11 + ((x - x1)/(x2 - x1)) * q21;
+  glm::dvec3 r2 = ((x2 - x)/(x2 - x1)) * q12 + ((x - x1)/(x2 - x1)) * q22;
+  glm::dvec3 p = ((y2 - y)/(y2 - y1)) * r1 + ((y - y1)/(y2 - y1)) * r2;
+  return p;
 }
 
 glm::dvec3 TextureMap::getPixelAt(int x, int y) const {
@@ -97,7 +115,11 @@ glm::dvec3 TextureMap::getPixelAt(int x, int y) const {
   // In order to add texture mapping support to the
   // raytracer, you need to implement this function.
 
-  return glm::dvec3(1, 1, 1);
+  x = std::max(0, std::min(x, width - 1));
+  y = std::max(0, std::min(y, height - 1));
+  glm::dvec3 color = glm::dvec3(data[(y * width + x) * 3]/255.0, data[(y * width + x) * 3 + 1]/255.0, data[(y * width + x) * 3 + 2]/255.0);
+
+  return color;
 }
 
 glm::dvec3 MaterialParameter::value(const isect &is) const {

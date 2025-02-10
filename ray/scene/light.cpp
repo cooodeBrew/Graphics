@@ -16,7 +16,13 @@ glm::dvec3 DirectionalLight::shadowAttenuation(const ray &r,
                                                const glm::dvec3 &p) const {
   // YOUR CODE HERE:
   // You should implement shadow-handling code here.
-  return glm::dvec3(1.0, 1.0, 1.0);
+  isect i;
+
+  if (scene->intersect((ray &) r, i)) {
+    return i.getMaterial().kt(i);
+  } else {
+    return glm::dvec3(1, 1, 1);
+  }
 }
 
 glm::dvec3 DirectionalLight::getColor() const { return color; }
@@ -31,7 +37,9 @@ double PointLight::distanceAttenuation(const glm::dvec3 &P) const {
   // You'll need to modify this method to attenuate the intensity
   // of the light based on the distance between the source and the
   // point P.  For now, we assume no attenuation and just return 1.0
-  return 1.0;
+  double d = glm::distance(position, P);
+  double atten = 1.0 / (cosntantTerm + linearTerm * d + quadraticTerm * d * d);
+  return min(1.0, atten);
 }
 
 glm::dvec3 PointLight::getColor() const { return color; }
@@ -44,7 +52,20 @@ glm::dvec3 PointLight::shadowAttenuation(const ray &r,
                                          const glm::dvec3 &p) const {
   // YOUR CODE HERE:
   // You should implement shadow-handling code here.
-  return glm::dvec3(1, 1, 1);
+  isect i;
+  scene->intersect((ray &) r, i);
+
+  // the point along the ray where the intersection occurs
+  glm::dvec3 point = r.at(i.getT()); 
+  // determine if the intersection point lies between the point 'p' and the light's position
+  if (glm::distance(point, p) <= glm::distance(position, p)) {
+    // between
+    // get material's transmission coefficient
+    return i.getMaterial().kt(i);
+  } else {
+    // return full light
+    return glm::dvec3(1, 1, 1);
+  }
 }
 
 #define VERBOSE 0
